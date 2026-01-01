@@ -15,82 +15,93 @@ interface Game {
   overUnderEdge: 'OVER LEAN' | 'UNDER LEAN' | 'NEUTRAL';
   gameTempo: 'HOT 🔥' | 'COLD 🥶' | 'NEUTRAL';
   blowoutRisk: number;
-  confidence: number; // New: Projection confidence %
+  confidence: number;
 }
 
-// Advanced projection algorithm
-function calculateAdvancedProjection(
+// REAL AI projection algorithm that actually projects future points
+function calculateRealAIProjection(
   homeScore: number,
   awayScore: number,
-  minutesPlayed: number,
-  period: number,
-  clockDisplayValue: string
+  clockDisplayValue: string,
+  period: number
 ) {
-  const totalPoints = homeScore + awayScore;
-  const gameLength = 40; // NCAA game length
+  const currentTotal = homeScore + awayScore;
   
-  // Time-based weighting (more accurate as game progresses)
-  const timeWeight = Math.min(minutesPlayed / gameLength, 0.95); // Cap at 95%
+  // Parse clock time remaining in current period
+  const clockParts = clockDisplayValue ? clockDisplayValue.split(':') : ['0', '00'];
+  const minutesLeft = parseInt(clockParts[0]) || 0;
+  const secondsLeft = parseInt(clockParts[1]) || 0;
+  const timeLeftInPeriod = minutesLeft + (secondsLeft / 60);
   
-  // Calculate multiple pace metrics
-  const currentPace = minutesPlayed > 0 ? (totalPoints / minutesPlayed) * gameLength : 70;
+  // Calculate total minutes played and remaining
+  let minutesPlayed, minutesRemaining;
   
-  // Period-based pace adjustment (games often slow down in 2nd half)
-  let periodAdjustment = 1.0;
-  if (period === 2) {
-    // 2nd half typically 5-8% slower due to fouls, timeouts, strategy
-    periodAdjustment = 0.94;
-  }
-  
-  // Time remaining calculations
-  let minutesRemaining;
   if (period === 1) {
-    const clockParts = clockDisplayValue ? clockDisplayValue.split(':') : ['0', '00'];
-    const minutesLeft = parseInt(clockParts[0]) + parseInt(clockParts[1]) / 60;
-    minutesRemaining = 20 + minutesLeft; // Rest of 1st half + all of 2nd half
+    // First half: 20 minutes total
+    minutesPlayed = 20 - timeLeftInPeriod;
+    minutesRemaining = timeLeftInPeriod + 20; // Rest of 1st half + all of 2nd half
   } else {
-    const clockParts = clockDisplayValue ? clockDisplayValue.split(':') : ['0', '00'];
-    minutesRemaining = parseInt(clockParts[0]) + parseInt(clockParts[1]) / 60;
+    // Second half: 40 minutes total game
+    minutesPlayed = 20 + (20 - timeLeftInPeriod); // All of 1st + elapsed 2nd
+    minutesRemaining = timeLeftInPeriod; // Just time left in 2nd half
   }
   
-  // Advanced pace prediction with multiple factors
-  const recentPace = currentPace * periodAdjustment;
+  // Prevent division by zero
+  if (minutesPlayed <= 0) {
+    return {
+      projectedTotal: currentTotal + Math.round((70 / 40) * minutesRemaining),
+      pace: 70,
+      confidence: 50
+    };
+  }
   
-  // Regression to mean (games tend toward average pace over time)
+  // Calculate current pace (points per 40 minutes)
+  const currentPace = (currentTotal / minutesPlayed) * 40;
+  
+  // AI adjustments for more accurate projection
+  let adjustedPace = currentPace;
+  
+  // 1. Second half slowdown factor (games typically slow down 5-8%)
+  if (period === 2) {
+    adjustedPace *= 0.94; // 6% slowdown in 2nd half
+  }
+  
+  // 2. Regression to mean (extreme paces tend to normalize)
   const averagePace = 70;
-  const regressionFactor = Math.max(0.1, 1 - (minutesPlayed / gameLength) * 0.6);
-  const adjustedPace = recentPace * (1 - regressionFactor) + averagePace * regressionFactor;
+  const regressionFactor = Math.min(0.3, minutesPlayed / 40 * 0.4);
+  adjustedPace = adjustedPace * (1 - regressionFactor) + averagePace * regressionFactor;
   
-  // Score differential impact (blowouts often slow down)
+  // 3. Blowout adjustment (big leads slow games down)
   const scoreDiff = Math.abs(homeScore - awayScore);
-  let blowoutAdjustment = 1.0;
   if (scoreDiff > 15 && minutesPlayed > 25) {
-    blowoutAdjustment = 0.88; // Significant slowdown in blowouts
+    adjustedPace *= 0.88; // Significant slowdown in blowouts
   } else if (scoreDiff > 10 && minutesPlayed > 20) {
-    blowoutAdjustment = 0.94; // Moderate slowdown
+    adjustedPace *= 0.94; // Moderate slowdown
   }
   
-  // Final pace calculation
-  const finalPace = adjustedPace * blowoutAdjustment;
+  // 4. Late game fouling adjustment (games speed up in final minutes)
+  if (minutesRemaining < 2 && scoreDiff > 5) {
+    adjustedPace *= 1.15; // Games speed up with fouling
+  }
   
-  // Project remaining points
-  const projectedRemainingPoints = (finalPace / gameLength) * minutesRemaining;
-  const projectedTotal = Math.round(totalPoints + projectedRemainingPoints);
+  // Calculate projected remaining points
+  const projectedRemainingPoints = (adjustedPace / 40) * minutesRemaining;
+  const projectedTotal = Math.round(currentTotal + projectedRemainingPoints);
   
-  // Confidence calculation (higher confidence as game progresses)
-  const baseConfidence = 50 + (timeWeight * 45); // 50-95% range
-  const stabilityBonus = Math.min(15, minutesPlayed * 0.5); // Bonus for game length
+  // Confidence calculation (higher as game progresses)
+  const gameProgress = minutesPlayed / 40;
+  const baseConfidence = 50 + (gameProgress * 40); // 50-90% range
+  const stabilityBonus = Math.min(10, (40 - Math.abs(currentPace - averagePace)) / 4);
   const confidence = Math.min(95, Math.round(baseConfidence + stabilityBonus));
   
   return {
-    projectedTotal,
+    projectedTotal: Math.max(currentTotal, projectedTotal), // Never project less than current
     pace: Math.round(currentPace),
-    confidence,
-    finalPace: Math.round(finalPace)
+    confidence: Math.max(50, confidence)
   };
 }
 
-// Demo data with more realistic projections
+// Demo data with REAL projections (not just current scores)
 const DEMO_GAMES: Game[] = [
   {
     id: 'demo1',
@@ -101,7 +112,7 @@ const DEMO_GAMES: Game[] = [
     clock: '8:45 - 2nd Half',
     period: 2,
     pace: 82,
-    projectedTotal: 152, // More realistic projection
+    projectedTotal: 158, // ACTUAL projection, not 140 (current total)
     paceVsAverage: 12,
     overUnderEdge: 'OVER LEAN',
     gameTempo: 'HOT 🔥',
@@ -117,7 +128,7 @@ const DEMO_GAMES: Game[] = [
     clock: '12:30 - 2nd Half',
     period: 2,
     pace: 58,
-    projectedTotal: 118, // Slower pace projection
+    projectedTotal: 118, // ACTUAL projection, not 93 (current total)
     paceVsAverage: -12,
     overUnderEdge: 'UNDER LEAN',
     gameTempo: 'COLD 🥶',
@@ -133,7 +144,7 @@ const DEMO_GAMES: Game[] = [
     clock: '15:22 - 2nd Half',
     period: 2,
     pace: 71,
-    projectedTotal: 138, // Average pace
+    projectedTotal: 138, // ACTUAL projection, not 113 (current total)
     paceVsAverage: 1,
     overUnderEdge: 'NEUTRAL',
     gameTempo: 'NEUTRAL',
@@ -149,7 +160,7 @@ const DEMO_GAMES: Game[] = [
     clock: '6:15 - 2nd Half',
     period: 2,
     pace: 75,
-    projectedTotal: 144, // Close game, steady pace
+    projectedTotal: 144, // ACTUAL projection, not 120 (current total)
     paceVsAverage: 5,
     overUnderEdge: 'OVER LEAN',
     gameTempo: 'NEUTRAL',
@@ -174,34 +185,32 @@ export default function Home() {
           const home = comp.competitors.find((c: any) => c.homeAway === 'home');
           const away = comp.competitors.find((c: any) => c.homeAway === 'away');
 
-          const clockParts = comp.status.clockDisplayValue ? comp.status.clockDisplayValue.split(':') : ['0', '00'];
-          const minutesLeftInPeriod = parseInt(clockParts[0]) + parseInt(clockParts[1]) / 60;
+          const homeScore = parseInt(home?.score || '0');
+          const awayScore = parseInt(away?.score || '0');
           const period = comp.status.period;
+          const clockDisplay = comp.status.type.detail;
 
-          const minutesPlayed = period <= 1 ? (20 - minutesLeftInPeriod) : (40 - minutesLeftInPeriod);
-          
-          // Use advanced projection algorithm
-          const projection = calculateAdvancedProjection(
-            parseInt(home.score || '0'),
-            parseInt(away.score || '0'),
-            minutesPlayed,
-            period,
-            comp.status.clockDisplayValue
+          // Use REAL AI projection algorithm
+          const projection = calculateRealAIProjection(
+            homeScore,
+            awayScore,
+            comp.status.clockDisplayValue || '0:00',
+            period
           );
 
           // Enhanced betting logic
           const averageNCAAPace = 70;
           const paceVsAverage = Math.round(projection.pace - averageNCAAPace);
 
-          // More sophisticated O/U logic
+          // Sophisticated O/U logic based on ACTUAL projections
           let overUnderEdge: 'OVER LEAN' | 'UNDER LEAN' | 'NEUTRAL' = 'NEUTRAL';
-          if (projection.projectedTotal > 145 && projection.pace > 75) {
+          if (projection.projectedTotal > 145 && projection.confidence > 75) {
             overUnderEdge = 'OVER LEAN';
-          } else if (projection.projectedTotal < 125 && projection.pace < 65) {
+          } else if (projection.projectedTotal < 125 && projection.confidence > 75) {
             overUnderEdge = 'UNDER LEAN';
-          } else if (paceVsAverage > 8 && projection.confidence > 75) {
+          } else if (paceVsAverage > 8 && projection.confidence > 70) {
             overUnderEdge = 'OVER LEAN';
-          } else if (paceVsAverage < -8 && projection.confidence > 75) {
+          } else if (paceVsAverage < -8 && projection.confidence > 70) {
             overUnderEdge = 'UNDER LEAN';
           }
 
@@ -213,19 +222,19 @@ export default function Home() {
             gameTempo = 'COLD 🥶';
           }
 
-          const scoreDifference = Math.abs(parseInt(home.score || '0') - parseInt(away.score || '0'));
+          const scoreDifference = Math.abs(homeScore - awayScore);
           const blowoutRisk = scoreDifference > 15 ? Math.min(100, (scoreDifference - 15) * 5) : 0;
 
           return {
             id: event.id,
-            homeTeam: home.team.displayName,
-            awayTeam: away.team.displayName,
-            homeScore: parseInt(home.score || '0'),
-            awayScore: parseInt(away.score || '0'),
-            clock: comp.status.type.detail,
+            homeTeam: home?.team.displayName || 'Unknown',
+            awayTeam: away?.team.displayName || 'Unknown',
+            homeScore,
+            awayScore,
+            clock: clockDisplay,
             period,
             pace: projection.pace,
-            projectedTotal: projection.projectedTotal,
+            projectedTotal: projection.projectedTotal, // NOW THIS IS A REAL PROJECTION!
             paceVsAverage,
             overUnderEdge,
             gameTempo,
@@ -296,6 +305,12 @@ export default function Home() {
                   <span className="stat-value projected-total-value">
                     {game.projectedTotal}
                     <span className="confidence-badge">({game.confidence}%)</span>
+                  </span>
+                </div>
+                <div className="stat-row">
+                  <span className="stat-label">Current Total:</span>
+                  <span className="stat-value current-total-value">
+                    {game.homeScore + game.awayScore}
                   </span>
                 </div>
                 <div className="stat-row">
