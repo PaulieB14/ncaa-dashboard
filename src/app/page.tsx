@@ -116,86 +116,6 @@ async function realAIProjection(
   }
 }
 
-// Demo data with AI projections
-const DEMO_GAMES: Game[] = [
-  {
-    id: 'demo1',
-    homeTeam: 'Duke Blue Devils',
-    awayTeam: 'North Carolina Tar Heels',
-    homeScore: 72,
-    awayScore: 68,
-    clock: '8:45 - 2nd Half',
-    period: 2,
-    pace: 82,
-    projectedTotal: 164, // AI projection higher due to neural network analysis
-    paceVsAverage: 12,
-    overUnderEdge: 'OVER LEAN',
-    gameTempo: 'HOT 🔥',
-    blowoutRisk: 15,
-    confidence: 89,
-    algorithm: 'Neural Network AI',
-    minutesRemaining: 8.75,
-    projectedPoints: 24
-  },
-  {
-    id: 'demo2',
-    homeTeam: 'Kentucky Wildcats',
-    awayTeam: 'Louisville Cardinals',
-    homeScore: 45,
-    awayScore: 48,
-    clock: '12:30 - 2nd Half',
-    period: 2,
-    pace: 58,
-    projectedTotal: 113, // AI detects defensive game pattern
-    paceVsAverage: -12,
-    overUnderEdge: 'UNDER LEAN',
-    gameTempo: 'COLD 🥶',
-    blowoutRisk: 5,
-    confidence: 84,
-    algorithm: 'Neural Network AI',
-    minutesRemaining: 12.5,
-    projectedPoints: 20
-  },
-  {
-    id: 'demo3',
-    homeTeam: 'Gonzaga Bulldogs',
-    awayTeam: 'UCLA Bruins', // FIXED: This was the error - awayTeam should be string, not number
-    homeScore: 58,
-    awayScore: 55, // FIXED: This was awayTeam: 55 (wrong field name)
-    clock: '15:22 - 2nd Half',
-    period: 2,
-    pace: 71,
-    projectedTotal: 142, // AI balanced prediction
-    paceVsAverage: 1,
-    overUnderEdge: 'NEUTRAL',
-    gameTempo: 'NEUTRAL',
-    blowoutRisk: 8,
-    confidence: 81,
-    algorithm: 'Neural Network AI',
-    minutesRemaining: 15.37,
-    projectedPoints: 29
-  },
-  {
-    id: 'demo4',
-    homeTeam: 'Michigan State Spartans',
-    awayTeam: 'Purdue Boilermakers',
-    homeScore: 61,
-    awayScore: 59,
-    clock: '6:15 - 2nd Half',
-    period: 2,
-    pace: 75,
-    projectedTotal: 135, // AI detects close game pattern
-    paceVsAverage: 5,
-    overUnderEdge: 'NEUTRAL',
-    gameTempo: 'NEUTRAL',
-    blowoutRisk: 3,
-    confidence: 92,
-    algorithm: 'Neural Network AI',
-    minutesRemaining: 6.25,
-    projectedPoints: 15
-  }
-];
-
 export default function Home() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
@@ -295,15 +215,11 @@ export default function Home() {
           })
       );
 
-      if (liveGames.length === 0) {
-        setGames(DEMO_GAMES);
-      } else {
-        setGames(liveGames);
-      }
+      setGames(liveGames);
       setLoading(false);
     } catch (err) {
       console.error(err);
-      setGames(DEMO_GAMES);
+      setGames([]);
       setLoading(false);
     }
   }, []);
@@ -314,9 +230,6 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [fetchScores]);
 
-  const gamesToDisplay = games.length > 0 ? games : DEMO_GAMES;
-  const isDemo = games.length === 0 || games === DEMO_GAMES;
-
   return (
     <main className="main-container">
       <div className="header-container">
@@ -326,23 +239,23 @@ export default function Home() {
           Real Neural Network AI projections & betting insights
           {aiLoaded && <span className="ai-status"> 🤖 AI Loaded</span>}
         </p>
-        {isDemo && (
-          <p className="demo-mode-badge">🎮 DEMO MODE - No live games today</p>
-        )}
       </div>
 
-      {loading && games.length === 0 ? (
+      {loading ? (
         <div className="loading-container">
           <div className="loading-spinner"></div>
           <p className="loading-text">
             {!aiLoaded ? 'Loading AI Model...' : 'Loading live games...'}
           </p>
         </div>
-      ) : gamesToDisplay.length === 0 ? (
-        <p className="no-games-message">Go build Legos.</p>
+      ) : games.length === 0 ? (
+        <div className="no-games-container">
+          <p className="no-games-message">No live games currently</p>
+          <p className="no-games-subtitle">Check back during game time for live AI projections!</p>
+        </div>
       ) : (
         <div className="game-grid">
-          {gamesToDisplay.map((game) => (
+          {games.map((game) => (
             <div key={game.id} className="game-card">
               <div className="game-clock">{game.clock}</div>
               <div className="team-scores">

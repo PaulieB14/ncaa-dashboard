@@ -86,18 +86,6 @@ body {
   text-shadow: 0 0 8px rgba(0, 230, 118, 0.4);
 }
 
-.demo-mode-badge {
-  background: linear-gradient(45deg, #fbbf24, #f59e0b);
-  color: #1a202c;
-  padding: 0.4rem 1rem;
-  border-radius: 9999px;
-  font-weight: 700;
-  font-size: 0.85rem;
-  display: inline-block;
-  margin-top: 1rem;
-  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
-}
-
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -126,13 +114,23 @@ body {
   100% { transform: rotate(360deg); }
 }
 
-.no-games-message {
+.no-games-container {
   text-align: center;
+  margin-top: 8rem;
+}
+
+.no-games-message {
   font-size: 2.5rem;
   font-weight: 700;
   color: #fbd38d;
-  margin-top: 8rem;
+  margin-bottom: 1rem;
   text-shadow: 0 0 10px rgba(252, 211, 77, 0.3);
+}
+
+.no-games-subtitle {
+  font-size: 1.2rem;
+  color: #a0aec0;
+  font-weight: 400;
 }
 
 .game-grid {
