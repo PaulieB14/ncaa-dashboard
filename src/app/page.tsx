@@ -14,11 +14,84 @@ interface Game {
   paceVsAverage: number;
   overUnderEdge: 'OVER LEAN' | 'UNDER LEAN' | 'NEUTRAL';
   gameTempo: 'HOT 🔥' | 'COLD 🥶' | 'NEUTRAL';
-  blowoutRisk: number; // Percentage
+  blowoutRisk: number;
+  confidence: number; // New: Projection confidence %
 }
 
-// Demo data with varied tempo classifications
-const demoGames: Game[] = [
+// Advanced projection algorithm
+function calculateAdvancedProjection(
+  homeScore: number,
+  awayScore: number,
+  minutesPlayed: number,
+  period: number,
+  clockDisplayValue: string
+) {
+  const totalPoints = homeScore + awayScore;
+  const gameLength = 40; // NCAA game length
+  
+  // Time-based weighting (more accurate as game progresses)
+  const timeWeight = Math.min(minutesPlayed / gameLength, 0.95); // Cap at 95%
+  
+  // Calculate multiple pace metrics
+  const currentPace = minutesPlayed > 0 ? (totalPoints / minutesPlayed) * gameLength : 70;
+  
+  // Period-based pace adjustment (games often slow down in 2nd half)
+  let periodAdjustment = 1.0;
+  if (period === 2) {
+    // 2nd half typically 5-8% slower due to fouls, timeouts, strategy
+    periodAdjustment = 0.94;
+  }
+  
+  // Time remaining calculations
+  let minutesRemaining;
+  if (period === 1) {
+    const clockParts = clockDisplayValue ? clockDisplayValue.split(':') : ['0', '00'];
+    const minutesLeft = parseInt(clockParts[0]) + parseInt(clockParts[1]) / 60;
+    minutesRemaining = 20 + minutesLeft; // Rest of 1st half + all of 2nd half
+  } else {
+    const clockParts = clockDisplayValue ? clockDisplayValue.split(':') : ['0', '00'];
+    minutesRemaining = parseInt(clockParts[0]) + parseInt(clockParts[1]) / 60;
+  }
+  
+  // Advanced pace prediction with multiple factors
+  const recentPace = currentPace * periodAdjustment;
+  
+  // Regression to mean (games tend toward average pace over time)
+  const averagePace = 70;
+  const regressionFactor = Math.max(0.1, 1 - (minutesPlayed / gameLength) * 0.6);
+  const adjustedPace = recentPace * (1 - regressionFactor) + averagePace * regressionFactor;
+  
+  // Score differential impact (blowouts often slow down)
+  const scoreDiff = Math.abs(homeScore - awayScore);
+  let blowoutAdjustment = 1.0;
+  if (scoreDiff > 15 && minutesPlayed > 25) {
+    blowoutAdjustment = 0.88; // Significant slowdown in blowouts
+  } else if (scoreDiff > 10 && minutesPlayed > 20) {
+    blowoutAdjustment = 0.94; // Moderate slowdown
+  }
+  
+  // Final pace calculation
+  const finalPace = adjustedPace * blowoutAdjustment;
+  
+  // Project remaining points
+  const projectedRemainingPoints = (finalPace / gameLength) * minutesRemaining;
+  const projectedTotal = Math.round(totalPoints + projectedRemainingPoints);
+  
+  // Confidence calculation (higher confidence as game progresses)
+  const baseConfidence = 50 + (timeWeight * 45); // 50-95% range
+  const stabilityBonus = Math.min(15, minutesPlayed * 0.5); // Bonus for game length
+  const confidence = Math.min(95, Math.round(baseConfidence + stabilityBonus));
+  
+  return {
+    projectedTotal,
+    pace: Math.round(currentPace),
+    confidence,
+    finalPace: Math.round(finalPace)
+  };
+}
+
+// Demo data with more realistic projections
+const DEMO_GAMES: Game[] = [
   {
     id: 'demo1',
     homeTeam: 'Duke Blue Devils',
@@ -27,12 +100,13 @@ const demoGames: Game[] = [
     awayScore: 68,
     clock: '8:45 - 2nd Half',
     period: 2,
-    pace: 82,  // High pace = HOT
-    projectedTotal: 145,
-    paceVsAverage: 12,  // +12 over average = HOT
+    pace: 82,
+    projectedTotal: 152, // More realistic projection
+    paceVsAverage: 12,
     overUnderEdge: 'OVER LEAN',
     gameTempo: 'HOT 🔥',
-    blowoutRisk: 15
+    blowoutRisk: 15,
+    confidence: 87
   },
   {
     id: 'demo2',
@@ -42,12 +116,13 @@ const demoGames: Game[] = [
     awayScore: 48,
     clock: '12:30 - 2nd Half',
     period: 2,
-    pace: 58,  // Low pace = COLD
-    projectedTotal: 128,
-    paceVsAverage: -12,  // -12 under average = COLD
+    pace: 58,
+    projectedTotal: 118, // Slower pace projection
+    paceVsAverage: -12,
     overUnderEdge: 'UNDER LEAN',
     gameTempo: 'COLD 🥶',
-    blowoutRisk: 5
+    blowoutRisk: 5,
+    confidence: 82
   },
   {
     id: 'demo3',
@@ -57,12 +132,13 @@ const demoGames: Game[] = [
     awayScore: 55,
     clock: '15:22 - 2nd Half',
     period: 2,
-    pace: 71,  // Average pace = NEUTRAL
-    projectedTotal: 135,
-    paceVsAverage: 1,  // +1 over average = NEUTRAL
+    pace: 71,
+    projectedTotal: 138, // Average pace
+    paceVsAverage: 1,
     overUnderEdge: 'NEUTRAL',
     gameTempo: 'NEUTRAL',
-    blowoutRisk: 8
+    blowoutRisk: 8,
+    confidence: 79
   },
   {
     id: 'demo4',
@@ -73,18 +149,18 @@ const demoGames: Game[] = [
     clock: '6:15 - 2nd Half',
     period: 2,
     pace: 75,
-    projectedTotal: 138,
+    projectedTotal: 144, // Close game, steady pace
     paceVsAverage: 5,
     overUnderEdge: 'OVER LEAN',
     gameTempo: 'NEUTRAL',
-    blowoutRisk: 3
+    blowoutRisk: 3,
+    confidence: 91
   }
 ];
 
 export default function Home() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDemo, setIsDemo] = useState(false);
 
   const fetchScores = useCallback(async () => {
     try {
@@ -103,36 +179,41 @@ export default function Home() {
           const period = comp.status.period;
 
           const minutesPlayed = period <= 1 ? (20 - minutesLeftInPeriod) : (40 - minutesLeftInPeriod);
-          const totalPoints = parseInt(home?.score || '0') + parseInt(away?.score || '0');
-          const pace = minutesPlayed > 0 ? (totalPoints / minutesPlayed) * 40 : 0;
-          const minutesRemaining = period <= 1 ? 20 + minutesLeftInPeriod : minutesLeftInPeriod;
-          const projectedTotal = Math.round(totalPoints + (pace / 40) * minutesRemaining);
+          
+          // Use advanced projection algorithm
+          const projection = calculateAdvancedProjection(
+            parseInt(home.score || '0'),
+            parseInt(away.score || '0'),
+            minutesPlayed,
+            period,
+            comp.status.clockDisplayValue
+          );
 
-          // --- Enhanced Betting Logic ---
-          const averageNCAAPace = 70; // NCAA Men's Basketball average
-          const paceVsAverage = Math.round(pace - averageNCAAPace);
+          // Enhanced betting logic
+          const averageNCAAPace = 70;
+          const paceVsAverage = Math.round(projection.pace - averageNCAAPace);
 
-          // More nuanced O/U logic
+          // More sophisticated O/U logic
           let overUnderEdge: 'OVER LEAN' | 'UNDER LEAN' | 'NEUTRAL' = 'NEUTRAL';
-          if (pace > 75 && projectedTotal > 140) {
+          if (projection.projectedTotal > 145 && projection.pace > 75) {
             overUnderEdge = 'OVER LEAN';
-          } else if (pace < 65 && projectedTotal < 130) {
+          } else if (projection.projectedTotal < 125 && projection.pace < 65) {
             overUnderEdge = 'UNDER LEAN';
-          } else if (paceVsAverage > 8) {
+          } else if (paceVsAverage > 8 && projection.confidence > 75) {
             overUnderEdge = 'OVER LEAN';
-          } else if (paceVsAverage < -8) {
+          } else if (paceVsAverage < -8 && projection.confidence > 75) {
             overUnderEdge = 'UNDER LEAN';
           }
 
-          // Fixed tempo classification
+          // Enhanced tempo classification
           let gameTempo: 'HOT 🔥' | 'COLD 🥶' | 'NEUTRAL' = 'NEUTRAL';
-          if (pace > 78 || paceVsAverage > 10) {
+          if (projection.pace > 78 || paceVsAverage > 10) {
             gameTempo = 'HOT 🔥';
-          } else if (pace < 62 || paceVsAverage < -10) {
+          } else if (projection.pace < 62 || paceVsAverage < -10) {
             gameTempo = 'COLD 🥶';
           }
 
-          const scoreDifference = Math.abs(parseInt(home?.score || '0') - parseInt(away?.score || '0'));
+          const scoreDifference = Math.abs(parseInt(home.score || '0') - parseInt(away.score || '0'));
           const blowoutRisk = scoreDifference > 15 ? Math.min(100, (scoreDifference - 15) * 5) : 0;
 
           return {
@@ -143,29 +224,25 @@ export default function Home() {
             awayScore: parseInt(away.score || '0'),
             clock: comp.status.type.detail,
             period,
-            pace: Math.round(pace),
-            projectedTotal,
+            pace: projection.pace,
+            projectedTotal: projection.projectedTotal,
             paceVsAverage,
             overUnderEdge,
             gameTempo,
             blowoutRisk,
+            confidence: projection.confidence,
           };
         });
 
       if (liveGames.length === 0) {
-        // No live games, show demo data
-        setGames(demoGames);
-        setIsDemo(true);
+        setGames(DEMO_GAMES);
       } else {
         setGames(liveGames);
-        setIsDemo(false);
       }
       setLoading(false);
     } catch (err) {
       console.error(err);
-      // On error, show demo data
-      setGames(demoGames);
-      setIsDemo(true);
+      setGames(DEMO_GAMES);
       setLoading(false);
     }
   }, []);
@@ -176,124 +253,74 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [fetchScores]);
 
-  const getBadgeClass = (edge: string) => {
-    switch (edge) {
-      case 'OVER LEAN': return 'insight-badge badge-over';
-      case 'UNDER LEAN': return 'insight-badge badge-under';
-      default: return 'insight-badge badge-neutral';
-    }
-  };
-
-  const getTempoBadgeClass = (tempo: string) => {
-    if (tempo.includes('HOT')) return 'insight-badge badge-hot';
-    if (tempo.includes('COLD')) return 'insight-badge badge-cold';
-    return 'insight-badge badge-neutral';
-  };
-
-  const getPaceColor = (pace: number) => {
-    if (pace > 0) return 'text-green-400';
-    if (pace < 0) return 'text-red-400';
-    return 'text-gray-300';
-  };
-
-  const getBlowoutColor = (risk: number) => {
-    if (risk > 70) return 'text-red-300 font-bold';
-    if (risk > 40) return 'text-yellow-300 font-bold';
-    if (risk > 15) return 'text-orange-300 font-bold';
-    return 'text-green-300 font-bold';
-  };
+  const gamesToDisplay = games.length > 0 ? games : DEMO_GAMES;
+  const isDemo = games.length === 0 || games === DEMO_GAMES;
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white p-6">
-      {/* Optimized Header Section */}
-      <div className="text-center mb-8">
-        <div className="mb-4">
-          <h1 className="main-title">
-            🏀 Live NCAA Betting Analytics
-          </h1>
-          <div className="gradient-line"></div>
-        </div>
-        
-        <p className="subtitle">
-          Real-time pace analysis & betting insights
-        </p>
-        
+    <main className=\"main-container\">
+      <div className=\"header-container\">
+        <h1 className=\"main-title\">🏀 Live NCAA Betting Analytics</h1>
+        <div className=\"gradient-line\"></div>
+        <p className=\"subtitle\">Advanced AI-powered projections & betting insights</p>
         {isDemo && (
-          <div className="flex justify-center mb-6">
-            <span className="demo-badge">
-              🎮 DEMO MODE - No live games today
-            </span>
-          </div>
+          <p className=\"demo-mode-badge\">🎮 DEMO MODE - No live games today</p>
         )}
       </div>
-      
-      {loading ? (
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500 mb-4"></div>
-          <p className="text-lg text-gray-300">Loading live games...</p>
-        </div>
-      ) : games.length === 0 ? (
-        <p className="text-center text-2xl font-bold text-yellow-300 mt-20">Go build Legos.</p>
+
+      {loading && games.length === 0 ? (
+        <div className=\"loading-spinner\"></div>
+      ) : gamesToDisplay.length === 0 ? (
+        <p className=\"no-games-message\">Go build Legos.</p>
       ) : (
-        <div className="game-grid">
-          {games.map((game) => (
-            <div key={game.id} className="game-card">
-              <div className="text-center mb-4">
-                <span className="clock-display">{game.clock}</span>
-              </div>
-              
-              <div className="space-y-2 mb-5">
-                <div className="flex justify-between items-center">
-                  <span className="team-name">{game.awayTeam}</span>
-                  <span className="team-score">{game.awayScore}</span>
+        <div className=\"game-grid\">
+          {gamesToDisplay.map((game) => (
+            <div key={game.id} className=\"game-card\">
+              <div className=\"game-clock\">{game.clock}</div>
+              <div className=\"team-scores\">
+                <div className=\"team-row\">
+                  <span className=\"team-name\">{game.awayTeam}</span>
+                  <span className=\"score\">{game.awayScore}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="team-name">{game.homeTeam}</span>
-                  <span className="team-score">{game.homeScore}</span>
+                <div className=\"team-row\">
+                  <span className=\"team-name\">{game.homeTeam}</span>
+                  <span className=\"score\">{game.homeScore}</span>
                 </div>
               </div>
-
-              <div className="space-y-2 mb-4">
-                <div className="stat-row">
-                  <span className="stat-label">Current Pace:</span>
-                  <span className="pace-value">{game.pace} pts/40 min</span>
+              <div className=\"game-stats\">
+                <div className=\"stat-row\">
+                  <span className=\"stat-label\">Current Pace:</span>
+                  <span className=\"stat-value pace-value\">{game.pace} pts/40 min</span>
                 </div>
-                <div className="stat-row">
-                  <span className="stat-label">Projected Final Total:</span>
-                  <span className="projected-total">{game.projectedTotal}</span>
+                <div className=\"stat-row\">
+                  <span className=\"stat-label\">AI Projected Total:</span>
+                  <span className=\"stat-value projected-total-value\">
+                    {game.projectedTotal}
+                    <span className=\"confidence-badge\">({game.confidence}%)</span>
+                  </span>
                 </div>
-              </div>
-
-              {/* Clean betting insights */}
-              <div className="border-t border-gray-600 pt-3">
-                <div className="space-y-2">
-                  <div className="stat-row">
-                    <span className="stat-label">Pace vs Average:</span>
-                    <span className={`pace-vs-average ${getPaceColor(game.paceVsAverage)}`}>
-                      {game.paceVsAverage > 0 ? '+' : ''}{game.paceVsAverage}
-                    </span>
-                  </div>
-                  
-                  <div className="stat-row">
-                    <span className="stat-label">O/U Edge:</span>
-                    <span className={getBadgeClass(game.overUnderEdge)}>
-                      {game.overUnderEdge}
-                    </span>
-                  </div>
-                  
-                  <div className="stat-row">
-                    <span className="stat-label">Game Tempo:</span>
-                    <span className={getTempoBadgeClass(game.gameTempo)}>
-                      {game.gameTempo}
-                    </span>
-                  </div>
-                  
-                  <div className="stat-row">
-                    <span className="stat-label">Blowout Risk:</span>
-                    <span className={`blowout-value ${getBlowoutColor(game.blowoutRisk)}`}>
-                      {game.blowoutRisk}%
-                    </span>
-                  </div>
+                <div className=\"stat-row\">
+                  <span className=\"stat-label\">Pace vs Average:</span>
+                  <span className={`stat-value pace-vs-average ${game.paceVsAverage > 0 ? 'text-green-300' : game.paceVsAverage < 0 ? 'text-red-300' : 'text-gray-400'}`}>
+                    {game.paceVsAverage > 0 ? '+' : ''}{game.paceVsAverage}
+                  </span>
+                </div>
+                <div className=\"stat-row\">
+                  <span className=\"stat-label\">O/U Edge:</span>
+                  <span className={`stat-value ${game.overUnderEdge === 'OVER LEAN' ? 'text-green-300' : game.overUnderEdge === 'UNDER LEAN' ? 'text-red-300' : 'text-gray-400'}`}>
+                    {game.overUnderEdge}
+                  </span>
+                </div>
+                <div className=\"stat-row\">
+                  <span className=\"stat-label\">Game Tempo:</span>
+                  <span className={`stat-value ${game.gameTempo === 'HOT 🔥' ? 'text-red-300' : game.gameTempo === 'COLD 🥶' ? 'text-blue-300' : 'text-gray-400'}`}>
+                    {game.gameTempo}
+                  </span>
+                </div>
+                <div className=\"stat-row\">
+                  <span className=\"stat-label\">Blowout Risk:</span>
+                  <span className={`stat-value blowout-value ${game.blowoutRisk > 70 ? 'text-red-300' : game.blowoutRisk > 40 ? 'text-yellow-300' : game.blowoutRisk > 15 ? 'text-orange-300' : 'text-green-300'} font-bold`}>
+                    {game.blowoutRisk}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -302,4 +329,4 @@ export default function Home() {
       )}
     </main>
   );
-}
+}"
