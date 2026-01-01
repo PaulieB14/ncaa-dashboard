@@ -17,7 +17,7 @@ interface Game {
   blowoutRisk: number; // Percentage
 }
 
-// Demo data for when no live games are available
+// Demo data with varied tempo classifications
 const demoGames: Game[] = [
   {
     id: 'demo1',
@@ -27,9 +27,9 @@ const demoGames: Game[] = [
     awayScore: 68,
     clock: '8:45 - 2nd Half',
     period: 2,
-    pace: 78,
+    pace: 82,  // High pace = HOT
     projectedTotal: 145,
-    paceVsAverage: 8,
+    paceVsAverage: 12,  // +12 over average = HOT
     overUnderEdge: 'OVER LEAN',
     gameTempo: 'HOT 🔥',
     blowoutRisk: 15
@@ -42,9 +42,9 @@ const demoGames: Game[] = [
     awayScore: 48,
     clock: '12:30 - 2nd Half',
     period: 2,
-    pace: 65,
+    pace: 58,  // Low pace = COLD
     projectedTotal: 128,
-    paceVsAverage: -5,
+    paceVsAverage: -12,  // -12 under average = COLD
     overUnderEdge: 'UNDER LEAN',
     gameTempo: 'COLD 🥶',
     blowoutRisk: 5
@@ -57,9 +57,9 @@ const demoGames: Game[] = [
     awayScore: 55,
     clock: '15:22 - 2nd Half',
     period: 2,
-    pace: 72,
+    pace: 71,  // Average pace = NEUTRAL
     projectedTotal: 135,
-    paceVsAverage: 2,
+    paceVsAverage: 1,  // +1 over average = NEUTRAL
     overUnderEdge: 'NEUTRAL',
     gameTempo: 'NEUTRAL',
     blowoutRisk: 8
@@ -93,26 +93,32 @@ export default function Home() {
           const minutesRemaining = period <= 1 ? 20 + minutesLeftInPeriod : minutesLeftInPeriod;
           const projectedTotal = Math.round(totalPoints + (pace / 40) * minutesRemaining);
 
-          // --- Betting Enhancements ---
-          const averageNCAAPace = 70; // Example average pace for NCAA Men's Basketball
+          // --- Enhanced Betting Logic ---
+          const averageNCAAPace = 70; // NCAA Men's Basketball average
           const paceVsAverage = Math.round(pace - averageNCAAPace);
 
+          // More nuanced O/U logic
           let overUnderEdge: 'OVER LEAN' | 'UNDER LEAN' | 'NEUTRAL' = 'NEUTRAL';
-          if (projectedTotal > 140 && paceVsAverage > 5) { // Example logic
+          if (pace > 75 && projectedTotal > 140) {
             overUnderEdge = 'OVER LEAN';
-          } else if (projectedTotal < 130 && paceVsAverage < -5) {
+          } else if (pace < 65 && projectedTotal < 130) {
+            overUnderEdge = 'UNDER LEAN';
+          } else if (paceVsAverage > 8) {
+            overUnderEdge = 'OVER LEAN';
+          } else if (paceVsAverage < -8) {
             overUnderEdge = 'UNDER LEAN';
           }
 
+          // Fixed tempo classification
           let gameTempo: 'HOT 🔥' | 'COLD 🥶' | 'NEUTRAL' = 'NEUTRAL';
-          if (paceVsAverage > 10) {
+          if (pace > 78 || paceVsAverage > 10) {
             gameTempo = 'HOT 🔥';
-          } else if (paceVsAverage < -10) {
+          } else if (pace < 62 || paceVsAverage < -10) {
             gameTempo = 'COLD 🥶';
           }
 
           const scoreDifference = Math.abs(parseInt(home?.score || '0') - parseInt(away?.score || '0'));
-          const blowoutRisk = scoreDifference > 15 ? Math.min(100, (scoreDifference - 15) * 5) : 0; // Example logic
+          const blowoutRisk = scoreDifference > 15 ? Math.min(100, (scoreDifference - 15) * 5) : 0;
 
           return {
             id: event.id,
