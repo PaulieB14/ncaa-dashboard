@@ -159,9 +159,9 @@ const DEMO_GAMES: Game[] = [
   {
     id: 'demo3',
     homeTeam: 'Gonzaga Bulldogs',
-    awayTeam: 'UCLA Bruins',
+    awayTeam: 'UCLA Bruins', // FIXED: This was the error - awayTeam should be string, not number
     homeScore: 58,
-    awayTeam: 55,
+    awayScore: 55, // FIXED: This was awayTeam: 55 (wrong field name)
     clock: '15:22 - 2nd Half',
     period: 2,
     pace: 71,
