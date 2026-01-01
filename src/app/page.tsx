@@ -1,6 +1,5 @@
 'use client';
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 interface Game {
   id: string;
@@ -12,47 +11,27 @@ interface Game {
   period: number;
   pace: number;
   projectedTotal: number;
-  bettingInsights: {
-    paceVsAverage: number;
-    overUnderEdge: string;
-    momentum: 'HOT' | 'COLD' | 'NEUTRAL';
-    blowoutRisk: number;
-  };
+  paceVsAverage: number;
+  overUnderEdge: 'OVER LEAN' | 'UNDER LEAN' | 'NEUTRAL';
+  gameTempo: 'HOT 🔥' | 'COLD 🥶' | 'NEUTRAL';
+  blowoutRisk: number; // Percentage
 }
 
 export default function Home() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchScores = async () => {
+  const fetchScores = useCallback(async () => {
     try {
       const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard');
       const data = await res.json();
 
       const liveGames: Game[] = data.events
-        .filter((event: unknown) => {
-          const e = event as { status: { type: { name: string } }, competitions: Array<{ status: { type: { detail: string } } }> };
-          return e.status.type.name !== 'STATUS_FINAL' && e.competitions[0].status.type.detail.includes(' - ');
-        })
-        .map((event: unknown) => {
-          const e = event as {
-            id: string;
-            competitions: Array<{
-              competitors: Array<{
-                homeAway: string;
-                team: { displayName: string };
-                score?: string;
-              }>;
-              status: {
-                clockDisplayValue?: string;
-                period: number;
-                type: { detail: string };
-              };
-            }>;
-          };
-          const comp = e.competitions[0];
-          const home = comp.competitors.find((c) => c.homeAway === 'home');
-          const away = comp.competitors.find((c) => c.homeAway === 'away');
+        .filter((event: any) => event.status.type.name !== 'STATUS_FINAL' && event.competitions[0].status.type.detail.includes(' - '))
+        .map((event: any) => {
+          const comp = event.competitions[0];
+          const home = comp.competitors.find((c: any) => c.homeAway === 'home');
+          const away = comp.competitors.find((c: any) => c.homeAway === 'away');
 
           const clockParts = comp.status.clockDisplayValue ? comp.status.clockDisplayValue.split(':') : ['0', '00'];
           const minutesLeftInPeriod = parseInt(clockParts[0]) + parseInt(clockParts[1]) / 60;
@@ -64,36 +43,41 @@ export default function Home() {
           const minutesRemaining = period <= 1 ? 20 + minutesLeftInPeriod : minutesLeftInPeriod;
           const projectedTotal = Math.round(totalPoints + (pace / 40) * minutesRemaining);
 
-          // Betting insights calculations
-          const avgCollegePace = 70;
-          const paceVsAverage = pace - avgCollegePace;
-          const scoreDiff = Math.abs(parseInt(home?.score || '0') - parseInt(away?.score || '0'));
-          const blowoutRisk = Math.min(100, (scoreDiff / 20) * 100);
-          
-          let overUnderEdge = 'NEUTRAL';
-          if (projectedTotal > 145) overUnderEdge = 'OVER LEAN';
-          else if (projectedTotal < 130) overUnderEdge = 'UNDER LEAN';
-          
-          let momentum = 'NEUTRAL' as 'HOT' | 'COLD' | 'NEUTRAL';
-          if (pace > 75) momentum = 'HOT';
-          else if (pace < 65) momentum = 'COLD';
+          // --- Betting Enhancements ---
+          const averageNCAAPace = 70; // Example average pace for NCAA Men's Basketball
+          const paceVsAverage = Math.round(pace - averageNCAAPace);
+
+          let overUnderEdge: 'OVER LEAN' | 'UNDER LEAN' | 'NEUTRAL' = 'NEUTRAL';
+          if (projectedTotal > 140 && paceVsAverage > 5) { // Example logic
+            overUnderEdge = 'OVER LEAN';
+          } else if (projectedTotal < 130 && paceVsAverage < -5) {
+            overUnderEdge = 'UNDER LEAN';
+          }
+
+          let gameTempo: 'HOT 🔥' | 'COLD 🥶' | 'NEUTRAL' = 'NEUTRAL';
+          if (paceVsAverage > 10) {
+            gameTempo = 'HOT 🔥';
+          } else if (paceVsAverage < -10) {
+            gameTempo = 'COLD 🥶';
+          }
+
+          const scoreDifference = Math.abs(parseInt(home?.score || '0') - parseInt(away?.score || '0'));
+          const blowoutRisk = scoreDifference > 15 ? Math.min(100, (scoreDifference - 15) * 5) : 0; // Example logic
 
           return {
-            id: e.id,
-            homeTeam: home?.team.displayName || 'Unknown',
-            awayTeam: away?.team.displayName || 'Unknown',
-            homeScore: parseInt(home?.score || '0'),
-            awayScore: parseInt(away?.score || '0'),
+            id: event.id,
+            homeTeam: home.team.displayName,
+            awayTeam: away.team.displayName,
+            homeScore: parseInt(home.score || '0'),
+            awayScore: parseInt(away.score || '0'),
             clock: comp.status.type.detail,
             period,
             pace: Math.round(pace),
             projectedTotal,
-            bettingInsights: {
-              paceVsAverage: Math.round(paceVsAverage),
-              overUnderEdge,
-              momentum,
-              blowoutRisk: Math.round(blowoutRisk)
-            }
+            paceVsAverage,
+            overUnderEdge,
+            gameTempo,
+            blowoutRisk,
           };
         });
 
@@ -103,105 +87,93 @@ export default function Home() {
       console.error(err);
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    let isMounted = true;
-    
-    const loadScores = async () => {
-      if (isMounted) {
-        await fetchScores();
-      }
-    };
-    
-    loadScores();
-    const interval = setInterval(loadScores, 8000);
-    
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []);
+    fetchScores();
+    const interval = setInterval(fetchScores, 8000);
+    return () => clearInterval(interval);
+  }, [fetchScores]);
 
   return (
     <main className="min-h-screen bg-gray-900 text-white p-8">
       <h1 className="text-4xl font-bold text-center mb-2">🏀 Live NCAA Betting Analytics</h1>
-      <p className="text-center text-gray-400 mb-8">Real-time pace analysis & betting insights</p>
-      
+      <p className="text-center text-xl text-gray-400 mb-8">Real-time pace analysis & betting insights</p>
       {loading ? (
         <p className="text-center text-xl">Loading live games...</p>
       ) : games.length === 0 ? (
-        <div className="text-center mt-32">
-          <p className="text-3xl font-bold text-yellow-300 mb-4">Go build Legos.</p>
-          <p className="text-gray-400">No live games right now. Check back during basketball season!</p>
-        </div>
+        <p className="text-center text-3xl font-bold text-yellow-300 mt-32">Go build Legos.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
           {games.map((game) => (
-            <div key={game.id} className="bg-gray-800 rounded-lg p-6 shadow-lg border border-gray-700">
-              <div className="text-center text-sm text-gray-400 mb-2">{game.clock}</div>
+            <div key={game.id} className="bg-gray-800 rounded-lg p-6 shadow-lg">
+              <div className="text-center text-sm text-gray-400 mb-4">{game.clock}</div>
               
-              <div className="space-y-4">
+              <div className="space-y-3 mb-6">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold">{game.awayTeam}</span>
-                  <span className="text-2xl font-bold">{game.awayScore}</span>
+                  <span className="font-semibold text-lg">{game.awayTeam}</span>
+                  <span className="text-3xl font-bold">{game.awayScore}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold">{game.homeTeam}</span>
-                  <span className="text-2xl font-bold">{game.homeScore}</span>
+                  <span className="font-semibold text-lg">{game.homeTeam}</span>
+                  <span className="text-3xl font-bold">{game.homeScore}</span>
                 </div>
               </div>
-              
-              <div className="mt-6 pt-4 border-t border-gray-700 space-y-2 text-sm">
+
+              <div className="space-y-3 mb-4">
                 <div className="flex justify-between">
-                  <span>Current Pace:</span>
+                  <span className="text-gray-300">Current Pace:</span>
                   <span className="font-bold text-yellow-400">{game.pace} pts/40 min</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Projected Final Total:</span>
+                  <span className="text-gray-300">Projected Final Total:</span>
                   <span className="font-bold text-green-400">{game.projectedTotal}</span>
                 </div>
+              </div>
+
+              <div className="border-t border-gray-700 pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-red-400 text-sm font-semibold">📊 BETTING INSIGHTS</span>
+                </div>
                 
-                <div className="mt-4 pt-3 border-t border-gray-600">
-                  <div className="text-xs text-gray-300 mb-2 font-semibold">🎯 BETTING INSIGHTS</div>
-                  
-                  <div className="flex justify-between items-center mb-1">
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
                     <span>Pace vs Average:</span>
-                    <span className={`font-bold ${game.bettingInsights.paceVsAverage > 0 ? 'text-red-400' : 'text-blue-400'}`}>
-                      {game.bettingInsights.paceVsAverage > 0 ? '+' : ''}{game.bettingInsights.paceVsAverage}
+                    <span className={`font-bold ${game.paceVsAverage > 0 ? 'text-green-500' : game.paceVsAverage < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                      {game.paceVsAverage > 0 ? '+' : ''}{game.paceVsAverage}
                     </span>
                   </div>
                   
-                  <div className="flex justify-between items-center mb-1">
+                  <div className="flex justify-between">
                     <span>O/U Edge:</span>
-                    <span className={`font-bold text-xs px-2 py-1 rounded ${
-                      game.bettingInsights.overUnderEdge === 'OVER LEAN' ? 'bg-red-900 text-red-200' :
-                      game.bettingInsights.overUnderEdge === 'UNDER LEAN' ? 'bg-blue-900 text-blue-200' :
-                      'bg-gray-700 text-gray-300'
+                    <span className={`font-bold px-2 py-1 rounded text-xs ${
+                      game.overUnderEdge === 'OVER LEAN' ? 'bg-green-600 text-white' : 
+                      game.overUnderEdge === 'UNDER LEAN' ? 'bg-blue-600 text-white' : 
+                      'bg-gray-600 text-white'
                     }`}>
-                      {game.bettingInsights.overUnderEdge}
+                      {game.overUnderEdge}
                     </span>
                   </div>
                   
-                  <div className="flex justify-between items-center mb-1">
+                  <div className="flex justify-between">
                     <span>Game Tempo:</span>
-                    <span className={`font-bold text-xs px-2 py-1 rounded ${
-                      game.bettingInsights.momentum === 'HOT' ? 'bg-orange-900 text-orange-200' :
-                      game.bettingInsights.momentum === 'COLD' ? 'bg-cyan-900 text-cyan-200' :
-                      'bg-gray-700 text-gray-300'
+                    <span className={`font-bold px-2 py-1 rounded text-xs ${
+                      game.gameTempo === 'HOT 🔥' ? 'bg-red-600 text-white' : 
+                      game.gameTempo === 'COLD 🥶' ? 'bg-blue-600 text-white' : 
+                      'bg-gray-600 text-white'
                     }`}>
-                      {game.bettingInsights.momentum}
+                      {game.gameTempo}
                     </span>
                   </div>
                   
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between">
                     <span>Blowout Risk:</span>
                     <span className={`font-bold ${
-                      game.bettingInsights.blowoutRisk > 60 ? 'text-red-400' :
-                      game.bettingInsights.blowoutRisk > 30 ? 'text-yellow-400' :
-                      'text-green-400'
+                      game.blowoutRisk > 70 ? 'text-red-500' : 
+                      game.blowoutRisk > 40 ? 'text-yellow-500' : 
+                      'text-green-500'
                     }`}>
-                      {game.bettingInsights.blowoutRisk}%
+                      {game.blowoutRisk}%
                     </span>
                   </div>
                 </div>
