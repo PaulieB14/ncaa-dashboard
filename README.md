@@ -1,6 +1,6 @@
 # 🏀 NCAA Betting Analytics Dashboard
 
-> **Fixed by PaulieB14** - Originally created by topher66 with Grok AI, but had critical build issues. Now fully functional with enhanced betting features!
+> **Enhanced by PaulieB14** - Originally created by topher66 with Grok AI, transformed into a professional betting analytics tool.
 
 ## ✨ Features
 
@@ -48,6 +48,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the dashboard.
 4. **Missing Tailwind config** - Added proper configuration
 5. **ESLint setup** - Fixed linting rules and targets
 6. **Performance optimizations** - Improved data fetching patterns
+7. **Deployment structure** - Moved to root for Vercel compatibility
 
 ### Enhancements Added:
 - **Betting insights algorithm** - Calculates edges and recommendations
@@ -72,26 +73,6 @@ Open [http://localhost:3000](http://localhost:3000) to see the dashboard.
 3. **Blowout detection**: Avoid totals bets in lopsided games
 4. **Value identification**: Find games where pace differs from market expectations
 
-## 🏀 When Games Are Live
-
-During college basketball season, you'll see cards like:
-
-```
-┌─────────────────────────────────┐
-│ Duke Blue Devils        85      │
-│ North Carolina Tar Heels 82     │
-│                                 │
-│ Current Pace: 78 pts/40 min     │
-│ Projected Total: 167            │
-│                                 │
-│ 🎯 BETTING INSIGHTS             │
-│ Pace vs Average: +8             │
-│ O/U Edge: OVER LEAN             │
-│ Game Tempo: HOT                 │
-│ Blowout Risk: 15%               │
-└─────────────────────────────────┘
-```
-
 ## 🚀 Deployment
 
 This app is optimized for Vercel deployment:
@@ -100,16 +81,14 @@ This app is optimized for Vercel deployment:
 2. Deploy automatically on push
 3. No environment variables needed (uses public ESPN API)
 
-## 🤝 Contributing
+## 🤝 Contributors
 
-Original concept by **topher66** (Chris Ewing)  
-Fixed and enhanced by **PaulieB14**
-
-Feel free to submit issues or pull requests!
+- **topher66** (Chris Ewing) - Original concept and idea
+- **PaulieB14** - Complete rebuild, fixes, and betting enhancements
 
 ## ⚠️ Disclaimer
 
-This tool is for educational and entertainment purposes. Please gamble responsibly and within your means. Past performance does not guarantee future results.
+This tool is for educational and entertainment purposes. Please gamble responsibly and within your means.
 
 ---
 
