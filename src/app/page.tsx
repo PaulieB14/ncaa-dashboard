@@ -17,9 +17,59 @@ interface Game {
   blowoutRisk: number; // Percentage
 }
 
+// Demo data for when no live games are available
+const demoGames: Game[] = [
+  {
+    id: 'demo1',
+    homeTeam: 'Duke Blue Devils',
+    awayTeam: 'North Carolina Tar Heels',
+    homeScore: 72,
+    awayScore: 68,
+    clock: '8:45 - 2nd Half',
+    period: 2,
+    pace: 78,
+    projectedTotal: 145,
+    paceVsAverage: 8,
+    overUnderEdge: 'OVER LEAN',
+    gameTempo: 'HOT 🔥',
+    blowoutRisk: 15
+  },
+  {
+    id: 'demo2',
+    homeTeam: 'Kentucky Wildcats',
+    awayTeam: 'Louisville Cardinals',
+    homeScore: 45,
+    awayScore: 48,
+    clock: '12:30 - 2nd Half',
+    period: 2,
+    pace: 65,
+    projectedTotal: 128,
+    paceVsAverage: -5,
+    overUnderEdge: 'UNDER LEAN',
+    gameTempo: 'COLD 🥶',
+    blowoutRisk: 5
+  },
+  {
+    id: 'demo3',
+    homeTeam: 'Gonzaga Bulldogs',
+    awayTeam: 'UCLA Bruins',
+    homeScore: 58,
+    awayScore: 55,
+    clock: '15:22 - 2nd Half',
+    period: 2,
+    pace: 72,
+    projectedTotal: 135,
+    paceVsAverage: 2,
+    overUnderEdge: 'NEUTRAL',
+    gameTempo: 'NEUTRAL',
+    blowoutRisk: 8
+  }
+];
+
 export default function Home() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDemo, setIsDemo] = useState(false);
 
   const fetchScores = useCallback(async () => {
     try {
@@ -81,10 +131,20 @@ export default function Home() {
           };
         });
 
-      setGames(liveGames);
+      if (liveGames.length === 0) {
+        // No live games, show demo data
+        setGames(demoGames);
+        setIsDemo(true);
+      } else {
+        setGames(liveGames);
+        setIsDemo(false);
+      }
       setLoading(false);
     } catch (err) {
       console.error(err);
+      // On error, show demo data
+      setGames(demoGames);
+      setIsDemo(true);
       setLoading(false);
     }
   }, []);
@@ -98,7 +158,16 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-900 text-white p-8">
       <h1 className="text-4xl font-bold text-center mb-2">🏀 Live NCAA Betting Analytics</h1>
-      <p className="text-center text-xl text-gray-400 mb-8">Real-time pace analysis & betting insights</p>
+      <p className="text-center text-xl text-gray-400 mb-4">Real-time pace analysis & betting insights</p>
+      
+      {isDemo && (
+        <div className="text-center mb-6">
+          <span className="bg-yellow-600 text-black px-3 py-1 rounded-full text-sm font-semibold">
+            🎮 DEMO MODE - No live games today
+          </span>
+        </div>
+      )}
+      
       {loading ? (
         <p className="text-center text-xl">Loading live games...</p>
       ) : games.length === 0 ? (
