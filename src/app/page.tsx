@@ -63,6 +63,21 @@ const demoGames: Game[] = [
     overUnderEdge: 'NEUTRAL',
     gameTempo: 'NEUTRAL',
     blowoutRisk: 8
+  },
+  {
+    id: 'demo4',
+    homeTeam: 'Michigan State Spartans',
+    awayTeam: 'Purdue Boilermakers',
+    homeScore: 61,
+    awayScore: 59,
+    clock: '6:15 - 2nd Half',
+    period: 2,
+    pace: 75,
+    projectedTotal: 138,
+    paceVsAverage: 5,
+    overUnderEdge: 'OVER LEAN',
+    gameTempo: 'NEUTRAL',
+    blowoutRisk: 3
   }
 ];
 
@@ -188,22 +203,22 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white p-8">
-      {/* Beautiful Header Section */}
-      <div className="text-center mb-12">
-        <div className="mb-6">
-          <h1 className="text-6xl font-bold mb-4 bg-gradient-to-r from-orange-400 via-red-500 to-purple-600 bg-clip-text text-transparent drop-shadow-lg">
+    <main className="min-h-screen bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white p-6">
+      {/* Optimized Header Section */}
+      <div className="text-center mb-8">
+        <div className="mb-4">
+          <h1 className="main-title">
             🏀 Live NCAA Betting Analytics
           </h1>
-          <div className="w-32 h-1 bg-gradient-to-r from-orange-400 to-purple-600 mx-auto rounded-full"></div>
+          <div className="gradient-line"></div>
         </div>
         
-        <p className="text-2xl text-gray-300 mb-8 font-light">
+        <p className="subtitle">
           Real-time pace analysis & betting insights
         </p>
         
         {isDemo && (
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-6">
             <span className="demo-badge">
               🎮 DEMO MODE - No live games today
             </span>
@@ -213,20 +228,20 @@ export default function Home() {
       
       {loading ? (
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mb-4"></div>
-          <p className="text-xl text-gray-300">Loading live games...</p>
+          <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500 mb-4"></div>
+          <p className="text-lg text-gray-300">Loading live games...</p>
         </div>
       ) : games.length === 0 ? (
-        <p className="text-center text-3xl font-bold text-yellow-300 mt-32">Go build Legos.</p>
+        <p className="text-center text-2xl font-bold text-yellow-300 mt-20">Go build Legos.</p>
       ) : (
         <div className="game-grid">
           {games.map((game) => (
             <div key={game.id} className="game-card">
-              <div className="text-center mb-6">
+              <div className="text-center mb-4">
                 <span className="clock-display">{game.clock}</span>
               </div>
               
-              <div className="space-y-4 mb-8">
+              <div className="space-y-2 mb-5">
                 <div className="flex justify-between items-center">
                   <span className="team-name">{game.awayTeam}</span>
                   <span className="team-score">{game.awayScore}</span>
@@ -237,7 +252,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="space-y-3 mb-6">
+              <div className="space-y-2 mb-4">
                 <div className="stat-row">
                   <span className="stat-label">Current Pace:</span>
                   <span className="pace-value">{game.pace} pts/40 min</span>
@@ -248,9 +263,9 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Clean betting insights without red header box */}
-              <div className="border-t border-gray-600 pt-4">
-                <div className="space-y-3">
+              {/* Clean betting insights */}
+              <div className="border-t border-gray-600 pt-3">
+                <div className="space-y-2">
                   <div className="stat-row">
                     <span className="stat-label">Pace vs Average:</span>
                     <span className={`stat-value ${getPaceColor(game.paceVsAverage)}`}>
