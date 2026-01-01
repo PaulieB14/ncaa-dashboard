@@ -118,9 +118,9 @@ body {
 
 .game-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
-  max-width: 1200px;
+  max-width: 1400px;
   width: 100%;
 }
 
@@ -168,14 +168,14 @@ body {
 }
 
 .team-name {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #e2e8f0;
   letter-spacing: 0.02em;
 }
 
 .score {
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: 800;
   color: #00e676;
   text-shadow: 0 0 10px rgba(0, 230, 118, 0.5);
@@ -186,7 +186,7 @@ body {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .stat-row {
@@ -196,13 +196,13 @@ body {
 }
 
 .stat-label {
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   color: #a0aec0;
   font-weight: 500;
 }
 
 .stat-value {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: #e2e8f0;
 }
@@ -222,26 +222,36 @@ body {
   text-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
 }
 
+.time-remaining-value {
+  color: #fbbf24;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
+}
+
+.projected-points-value {
+  color: #a78bfa;
+  text-shadow: 0 0 8px rgba(167, 139, 250, 0.3);
+}
+
 .confidence-badge {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: #38bdf8;
   font-weight: 600;
   margin-left: 0.5rem;
   background: rgba(56, 189, 248, 0.1);
-  padding: 0.1rem 0.4rem;
+  padding: 0.1rem 0.3rem;
   border-radius: 0.3rem;
   border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
 .blowout-value {
-  font-size: 1rem;
+  font-size: 0.9rem;
   text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
 }
 
 /* Responsive adjustments */
 @media (max-width: 1024px) {
   .game-grid {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   }
   .main-title {
     font-size: 3rem;
@@ -250,7 +260,7 @@ body {
 
 @media (max-width: 768px) {
   .game-grid {
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   }
   .main-title {
     font-size: 2.5rem;
@@ -274,6 +284,6 @@ body {
     padding: 1.25rem;
   }
   .score {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
   }
 }
