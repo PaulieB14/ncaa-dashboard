@@ -257,67 +257,67 @@ export default function Home() {
   const isDemo = games.length === 0 || games === DEMO_GAMES;
 
   return (
-    <main className=\"main-container\">
-      <div className=\"header-container\">
-        <h1 className=\"main-title\">🏀 Live NCAA Betting Analytics</h1>
-        <div className=\"gradient-line\"></div>
-        <p className=\"subtitle\">Advanced AI-powered projections & betting insights</p>
+    <main className="main-container">
+      <div className="header-container">
+        <h1 className="main-title">🏀 Live NCAA Betting Analytics</h1>
+        <div className="gradient-line"></div>
+        <p className="subtitle">Advanced AI-powered projections & betting insights</p>
         {isDemo && (
-          <p className=\"demo-mode-badge\">🎮 DEMO MODE - No live games today</p>
+          <p className="demo-mode-badge">🎮 DEMO MODE - No live games today</p>
         )}
       </div>
 
       {loading && games.length === 0 ? (
-        <div className=\"loading-spinner\"></div>
+        <div className="loading-spinner"></div>
       ) : gamesToDisplay.length === 0 ? (
-        <p className=\"no-games-message\">Go build Legos.</p>
+        <p className="no-games-message">Go build Legos.</p>
       ) : (
-        <div className=\"game-grid\">
+        <div className="game-grid">
           {gamesToDisplay.map((game) => (
-            <div key={game.id} className=\"game-card\">
-              <div className=\"game-clock\">{game.clock}</div>
-              <div className=\"team-scores\">
-                <div className=\"team-row\">
-                  <span className=\"team-name\">{game.awayTeam}</span>
-                  <span className=\"score\">{game.awayScore}</span>
+            <div key={game.id} className="game-card">
+              <div className="game-clock">{game.clock}</div>
+              <div className="team-scores">
+                <div className="team-row">
+                  <span className="team-name">{game.awayTeam}</span>
+                  <span className="score">{game.awayScore}</span>
                 </div>
-                <div className=\"team-row\">
-                  <span className=\"team-name\">{game.homeTeam}</span>
-                  <span className=\"score\">{game.homeScore}</span>
+                <div className="team-row">
+                  <span className="team-name">{game.homeTeam}</span>
+                  <span className="score">{game.homeScore}</span>
                 </div>
               </div>
-              <div className=\"game-stats\">
-                <div className=\"stat-row\">
-                  <span className=\"stat-label\">Current Pace:</span>
-                  <span className=\"stat-value pace-value\">{game.pace} pts/40 min</span>
+              <div className="game-stats">
+                <div className="stat-row">
+                  <span className="stat-label">Current Pace:</span>
+                  <span className="stat-value pace-value">{game.pace} pts/40 min</span>
                 </div>
-                <div className=\"stat-row\">
-                  <span className=\"stat-label\">AI Projected Total:</span>
-                  <span className=\"stat-value projected-total-value\">
+                <div className="stat-row">
+                  <span className="stat-label">AI Projected Total:</span>
+                  <span className="stat-value projected-total-value">
                     {game.projectedTotal}
-                    <span className=\"confidence-badge\">({game.confidence}%)</span>
+                    <span className="confidence-badge">({game.confidence}%)</span>
                   </span>
                 </div>
-                <div className=\"stat-row\">
-                  <span className=\"stat-label\">Pace vs Average:</span>
+                <div className="stat-row">
+                  <span className="stat-label">Pace vs Average:</span>
                   <span className={`stat-value pace-vs-average ${game.paceVsAverage > 0 ? 'text-green-300' : game.paceVsAverage < 0 ? 'text-red-300' : 'text-gray-400'}`}>
                     {game.paceVsAverage > 0 ? '+' : ''}{game.paceVsAverage}
                   </span>
                 </div>
-                <div className=\"stat-row\">
-                  <span className=\"stat-label\">O/U Edge:</span>
+                <div className="stat-row">
+                  <span className="stat-label">O/U Edge:</span>
                   <span className={`stat-value ${game.overUnderEdge === 'OVER LEAN' ? 'text-green-300' : game.overUnderEdge === 'UNDER LEAN' ? 'text-red-300' : 'text-gray-400'}`}>
                     {game.overUnderEdge}
                   </span>
                 </div>
-                <div className=\"stat-row\">
-                  <span className=\"stat-label\">Game Tempo:</span>
+                <div className="stat-row">
+                  <span className="stat-label">Game Tempo:</span>
                   <span className={`stat-value ${game.gameTempo === 'HOT 🔥' ? 'text-red-300' : game.gameTempo === 'COLD 🥶' ? 'text-blue-300' : 'text-gray-400'}`}>
                     {game.gameTempo}
                   </span>
                 </div>
-                <div className=\"stat-row\">
-                  <span className=\"stat-label\">Blowout Risk:</span>
+                <div className="stat-row">
+                  <span className="stat-label">Blowout Risk:</span>
                   <span className={`stat-value blowout-value ${game.blowoutRisk > 70 ? 'text-red-300' : game.blowoutRisk > 40 ? 'text-yellow-300' : game.blowoutRisk > 15 ? 'text-orange-300' : 'text-green-300'} font-bold`}>
                     {game.blowoutRisk}%
                   </span>
@@ -329,4 +329,4 @@ export default function Home() {
       )}
     </main>
   );
-}"
+}
