@@ -69,7 +69,7 @@ export default function Home() {
     <main className="min-h-screen bg-gray-900 text-white p-8">
       <h1 className="text-4xl font-bold text-center mb-8">Live NCAA Men's Basketball Pace Dashboard</h1>
       {loading ? (
-        <p className="text-center">Loading live games...</p>
+        <p className="text-center text-xl">Loading live games...</p>
       ) : games.length === 0 ? (
         <p className="text-center text-3xl font-bold text-yellow-300 mt-32">Go build Legos.</p>
       ) : (
