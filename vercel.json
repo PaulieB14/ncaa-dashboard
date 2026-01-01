@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd ncaa-pace-dashboard && npm run build",
+  "outputDirectory": "ncaa-pace-dashboard/.next",
+  "installCommand": "cd ncaa-pace-dashboard && npm install"
+}
