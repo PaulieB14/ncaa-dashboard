@@ -37,16 +37,16 @@ body {
   min-height: 100vh;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
   color: white;
-  padding: 2rem;
+  padding: 1.5rem;
 }
 
 .header-container {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 2.5rem;
 }
 
 .main-title {
-  font-size: 3.5rem;
+  font-size: 3rem;
   font-weight: bold;
   background: linear-gradient(45deg, #10b981, #06d6a0, #118ab2);
   background-clip: text;
@@ -64,7 +64,7 @@ body {
 }
 
 .subtitle {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   color: #94a3b8;
   margin-bottom: 1.5rem;
 }
@@ -80,13 +80,14 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  padding: 0.6rem 1.2rem;
   background: rgba(16, 185, 129, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.3);
   border-radius: 0.5rem;
   color: #10b981;
   text-decoration: none;
   font-weight: 500;
+  font-size: 0.9rem;
   transition: all 0.3s ease;
 }
 
@@ -125,12 +126,12 @@ body {
 }
 
 .games-container {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 
 .games-section {
-  margin-bottom: 3rem;
+  margin-bottom: 2.5rem;
 }
 
 .section-toggle {
@@ -140,13 +141,13 @@ body {
   text-align: left;
   cursor: pointer;
   padding: 0;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
 }
 
 .section-title {
-  font-size: 2rem;
+  font-size: 1.6rem;
   font-weight: bold;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -166,56 +167,76 @@ body {
 }
 
 .toggle-icon {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   color: #94a3b8;
   transition: transform 0.3s ease;
 }
 
 .game-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+/* 🔧 FIXED: Ensure 4 cards across on larger screens */
+@media (min-width: 1200px) {
+  .game-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .game-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 600px) and (max-width: 899px) {
+  .game-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .game-card {
   background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.6));
   border: 1px solid rgba(16, 185, 129, 0.3);
-  border-radius: 1rem;
-  padding: 1.5rem;
+  border-radius: 0.8rem;
+  padding: 1rem;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
+  min-height: 400px;
 }
 
 .game-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-3px);
   border-color: rgba(16, 185, 129, 0.6);
-  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.2);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.2);
 }
 
 .game-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.8rem;
 }
 
 .game-clock {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: bold;
   color: #10b981;
   background: rgba(16, 185, 129, 0.1);
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 0.4rem;
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
 .live-indicator {
   color: #ef4444;
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   background: rgba(239, 68, 68, 0.1);
-  padding: 0.25rem 0.75rem;
-  border-radius: 0.5rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.4rem;
   border: 1px solid rgba(239, 68, 68, 0.3);
   animation: pulse 2s infinite;
 }
@@ -223,10 +244,10 @@ body {
 .halftime-indicator {
   color: #f59e0b;
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   background: rgba(245, 158, 11, 0.1);
-  padding: 0.25rem 0.75rem;
-  border-radius: 0.5rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.4rem;
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
@@ -236,14 +257,14 @@ body {
 }
 
 .team-scores {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .team-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 0;
+  padding: 0.6rem 0;
   border-bottom: 1px solid rgba(148, 163, 184, 0.2);
 }
 
@@ -253,35 +274,37 @@ body {
 
 .team-name {
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
+  line-height: 1.2;
 }
 
 .score {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: bold;
   color: #10b981;
 }
 
 .game-stats {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .stat-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0;
+  padding: 0.3rem 0;
 }
 
 .stat-label {
   color: #94a3b8;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .stat-value {
   font-weight: 600;
   color: white;
+  font-size: 0.85rem;
 }
 
 .pace-value {
@@ -293,9 +316,9 @@ body {
 }
 
 .confidence-badge {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   color: #94a3b8;
-  margin-left: 0.5rem;
+  margin-left: 0.4rem;
 }
 
 .current-total-value {
@@ -316,14 +339,14 @@ body {
 
 .no-games-container {
   text-align: center;
-  padding: 4rem 2rem;
+  padding: 3rem 2rem;
   background: rgba(30, 41, 59, 0.5);
   border-radius: 1rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .no-games-message {
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: bold;
   color: #f59e0b;
   margin-bottom: 1rem;
@@ -331,15 +354,15 @@ body {
 
 .no-games-subtitle {
   color: #94a3b8;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .summary-stats {
   display: flex;
   justify-content: center;
   gap: 2rem;
-  margin-top: 3rem;
-  padding: 2rem;
+  margin-top: 2rem;
+  padding: 1.5rem;
   background: rgba(30, 41, 59, 0.5);
   border-radius: 1rem;
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -351,15 +374,15 @@ body {
 
 .stat-number {
   display: block;
-  font-size: 2rem;
+  font-size: 1.8rem;
   font-weight: bold;
   color: #10b981;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
 }
 
 .stat-label {
   color: #94a3b8;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -371,11 +394,11 @@ body {
   }
   
   .main-title {
-    font-size: 2.5rem;
+    font-size: 2.2rem;
   }
   
   .game-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
   
   .header-links {
@@ -389,6 +412,24 @@ body {
   }
   
   .section-title {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
+  }
+  
+  .game-card {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-title {
+    font-size: 1.8rem;
+  }
+  
+  .team-name {
+    font-size: 0.85rem;
+  }
+  
+  .score {
+    font-size: 1.1rem;
   }
 }
