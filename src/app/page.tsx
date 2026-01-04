@@ -165,11 +165,12 @@ export default function Home() {
 
   const fetchScores = useCallback(async () => {
     try {
-      const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard');
+      // 🔧 FIXED: Added groups=50 parameter to get ALL divisions/conferences (40+ games vs 2 games)
+      const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?groups=50');
       const data = await res.json();
 
       // 🔧 DEBUG: Log API response to see what's available
-      console.log('🏀 ESPN API Response:', data);
+      console.log('🏀 ESPN API Response (with groups=50):', data);
       console.log('📊 Total events found:', data.events?.length || 0);
       
       // 🔧 FIXED: More inclusive filtering - show all non-final games
