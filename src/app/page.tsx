@@ -19,6 +19,8 @@ interface Game {
   algorithm: string;
   minutesRemaining: number;
   projectedPoints: number;
+  status: string;
+  gameState: 'LIVE' | 'HALFTIME' | 'UPCOMING';
 }
 
 // Simplified AI-like projection (no TensorFlow dependency issues)
@@ -162,6 +164,8 @@ function getTeamPaceMultiplier(homeTeam: string, awayTeam: string): number {
 export default function Home() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showHalftime, setShowHalftime] = useState(false);
+  const [showUpcoming, setShowUpcoming] = useState(false);
 
   const fetchScores = useCallback(async () => {
     try {
@@ -173,24 +177,14 @@ export default function Home() {
       console.log('🏀 ESPN API Response (with groups=50):', data);
       console.log('📊 Total events found:', data.events?.length || 0);
       
-      // 🔧 FIXED: More inclusive filtering - show all non-final games
       const allGames = data.events || [];
-      console.log('🎯 All games:', allGames.map((event: any) => ({
-        id: event.id,
-        name: event.name,
-        status: event.status.type.name,
-        detail: event.competitions[0]?.status?.type?.detail,
-        state: event.status.type.state
-      })));
 
-      const liveGames: Game[] = data.events
+      const processedGames: Game[] = data.events
         // 🔧 FIXED: Show all games that aren't final (includes scheduled, pre-game, in-progress)
         .filter((event: any) => {
           const isNotFinal = event.status.type.name !== 'STATUS_FINAL';
           const isNotPostponed = event.status.type.name !== 'STATUS_POSTPONED';
           const isNotCanceled = event.status.type.name !== 'STATUS_CANCELED';
-          
-          console.log(`🎮 Game ${event.name}: Status=${event.status.type.name}, Include=${isNotFinal && isNotPostponed && isNotCanceled}`);
           
           return isNotFinal && isNotPostponed && isNotCanceled;
         })
@@ -202,6 +196,15 @@ export default function Home() {
           const homeScore = parseInt(home?.score || '0');
           const awayScore = parseInt(away?.score || '0');
           const period = comp.status.period || 1;
+          const status = event.status.type.name;
+          
+          // 🔧 Determine game state
+          let gameState: 'LIVE' | 'HALFTIME' | 'UPCOMING' = 'UPCOMING';
+          if (status === 'STATUS_IN_PROGRESS') {
+            gameState = 'LIVE';
+          } else if (status === 'STATUS_HALFTIME') {
+            gameState = 'HALFTIME';
+          }
           
           // 🔧 FIXED: Handle different clock display formats
           let clockDisplay = comp.status.type.detail || comp.status.type.shortDetail || 'Scheduled';
@@ -263,11 +266,13 @@ export default function Home() {
             algorithm: projection.algorithm,
             minutesRemaining: projection.minutesRemaining,
             projectedPoints: projection.projectedPoints,
+            status: status,
+            gameState: gameState,
           };
         });
 
-      console.log('✅ Final filtered games:', liveGames.length);
-      setGames(liveGames);
+      console.log('✅ Final processed games:', processedGames.length);
+      setGames(processedGames);
       setLoading(false);
     } catch (err) {
       console.error('❌ Error fetching games:', err);
@@ -282,6 +287,86 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [fetchScores]);
 
+  // 🔧 Organize games by state
+  const liveGames = games.filter(game => game.gameState === 'LIVE');
+  const halftimeGames = games.filter(game => game.gameState === 'HALFTIME');
+  const upcomingGames = games.filter(game => game.gameState === 'UPCOMING');
+
+  const GameCard = ({ game }: { game: Game }) => (
+    <div key={game.id} className="game-card">
+      <div className="game-header">
+        <div className="game-clock">{game.clock}</div>
+        {game.gameState === 'LIVE' && <div className="live-indicator">🔴 LIVE</div>}
+        {game.gameState === 'HALFTIME' && <div className="halftime-indicator">⏸️ HALFTIME</div>}
+      </div>
+      <div className="team-scores">
+        <div className="team-row">
+          <span className="team-name">{game.awayTeam}</span>
+          <span className="score">{game.awayScore}</span>
+        </div>
+        <div className="team-row">
+          <span className="team-name">{game.homeTeam}</span>
+          <span className="score">{game.homeScore}</span>
+        </div>
+      </div>
+      <div className="game-stats">
+        <div className="stat-row">
+          <span className="stat-label">Current Pace:</span>
+          <span className="stat-value pace-value">{game.pace} pts/40 min</span>
+        </div>
+        <div className="stat-row">
+          <span className="stat-label">{game.algorithm} Projection:</span>
+          <span className="stat-value projected-total-value">
+            {game.projectedTotal}
+            <span className="confidence-badge">({game.confidence}%)</span>
+          </span>
+        </div>
+        <div className="stat-row">
+          <span className="stat-label">Current Total:</span>
+          <span className="stat-value current-total-value">
+            {game.homeScore + game.awayScore}
+          </span>
+        </div>
+        <div className="stat-row">
+          <span className="stat-label">Time Remaining:</span>
+          <span className="stat-value time-remaining-value">
+            {game.minutesRemaining} min
+          </span>
+        </div>
+        <div className="stat-row">
+          <span className="stat-label">AI Projected +Points:</span>
+          <span className="stat-value projected-points-value">
+            +{game.projectedPoints}
+          </span>
+        </div>
+        <div className="stat-row">
+          <span className="stat-label">Pace vs Average:</span>
+          <span className={`stat-value pace-vs-average ${game.paceVsAverage > 0 ? 'text-green-300' : game.paceVsAverage < 0 ? 'text-red-300' : 'text-gray-400'}`}>
+            {game.paceVsAverage > 0 ? '+' : ''}{game.paceVsAverage}
+          </span>
+        </div>
+        <div className="stat-row">
+          <span className="stat-label">O/U Edge:</span>
+          <span className={`stat-value ${game.overUnderEdge === 'OVER LEAN' ? 'text-green-300' : game.overUnderEdge === 'UNDER LEAN' ? 'text-red-300' : 'text-gray-400'}`}>
+            {game.overUnderEdge}
+          </span>
+        </div>
+        <div className="stat-row">
+          <span className="stat-label">Game Tempo:</span>
+          <span className={`stat-value ${game.gameTempo === 'HOT 🔥' ? 'text-red-300' : game.gameTempo === 'COLD 🥶' ? 'text-blue-300' : 'text-gray-400'}`}>
+            {game.gameTempo}
+          </span>
+        </div>
+        <div className="stat-row">
+          <span className="stat-label">Blowout Risk:</span>
+          <span className={`stat-value blowout-value ${game.blowoutRisk > 70 ? 'text-red-300' : game.blowoutRisk > 40 ? 'text-yellow-300' : game.blowoutRisk > 15 ? 'text-orange-300' : 'text-green-300'} font-bold`}>
+            {game.blowoutRisk}%
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <main className="main-container">
       <div className="header-container">
@@ -290,6 +375,24 @@ export default function Home() {
         <p className="subtitle">
           Smart AI projections & betting insights
         </p>
+        <div className="header-links">
+          <a 
+            href="https://www.ncaa.com/scoreboard/basketball-men/d1" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="schedule-link"
+          >
+            📅 Full NCAA Schedule
+          </a>
+          <a 
+            href="https://www.espn.com/mens-college-basketball/scoreboard" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="schedule-link"
+          >
+            📊 ESPN Scoreboard
+          </a>
+        </div>
       </div>
 
       {loading ? (
@@ -297,83 +400,93 @@ export default function Home() {
           <div className="loading-spinner"></div>
           <p className="loading-text">Loading live games...</p>
         </div>
-      ) : games.length === 0 ? (
-        <div className="no-games-container">
-          <p className="no-games-message">No live games currently</p>
-          <p className="no-games-subtitle">Check back during game time for live AI projections!</p>
-        </div>
       ) : (
-        <div className="game-grid">
-          {games.map((game) => (
-            <div key={game.id} className="game-card">
-              <div className="game-clock">{game.clock}</div>
-              <div className="team-scores">
-                <div className="team-row">
-                  <span className="team-name">{game.awayTeam}</span>
-                  <span className="score">{game.awayScore}</span>
-                </div>
-                <div className="team-row">
-                  <span className="team-name">{game.homeTeam}</span>
-                  <span className="score">{game.homeScore}</span>
-                </div>
+        <div className="games-container">
+          {/* 🔥 LIVE GAMES - Always visible and prioritized */}
+          {liveGames.length > 0 && (
+            <section className="games-section">
+              <h2 className="section-title live-title">
+                🔴 LIVE GAMES ({liveGames.length})
+              </h2>
+              <div className="game-grid">
+                {liveGames.map((game) => (
+                  <GameCard key={game.id} game={game} />
+                ))}
               </div>
-              <div className="game-stats">
-                <div className="stat-row">
-                  <span className="stat-label">Current Pace:</span>
-                  <span className="stat-value pace-value">{game.pace} pts/40 min</span>
+            </section>
+          )}
+
+          {/* ⏸️ HALFTIME GAMES - Collapsible */}
+          {halftimeGames.length > 0 && (
+            <section className="games-section">
+              <button 
+                className="section-toggle"
+                onClick={() => setShowHalftime(!showHalftime)}
+              >
+                <h2 className="section-title halftime-title">
+                  ⏸️ HALFTIME ({halftimeGames.length})
+                  <span className="toggle-icon">{showHalftime ? '▼' : '▶'}</span>
+                </h2>
+              </button>
+              {showHalftime && (
+                <div className="game-grid">
+                  {halftimeGames.map((game) => (
+                    <GameCard key={game.id} game={game} />
+                  ))}
                 </div>
-                <div className="stat-row">
-                  <span className="stat-label">{game.algorithm} Projection:</span>
-                  <span className="stat-value projected-total-value">
-                    {game.projectedTotal}
-                    <span className="confidence-badge">({game.confidence}%)</span>
-                  </span>
+              )}
+            </section>
+          )}
+
+          {/* 📅 UPCOMING GAMES - Collapsible */}
+          {upcomingGames.length > 0 && (
+            <section className="games-section">
+              <button 
+                className="section-toggle"
+                onClick={() => setShowUpcoming(!showUpcoming)}
+              >
+                <h2 className="section-title upcoming-title">
+                  📅 UPCOMING TODAY ({upcomingGames.length})
+                  <span className="toggle-icon">{showUpcoming ? '▼' : '▶'}</span>
+                </h2>
+              </button>
+              {showUpcoming && (
+                <div className="game-grid">
+                  {upcomingGames.map((game) => (
+                    <GameCard key={game.id} game={game} />
+                  ))}
                 </div>
-                <div className="stat-row">
-                  <span className="stat-label">Current Total:</span>
-                  <span className="stat-value current-total-value">
-                    {game.homeScore + game.awayScore}
-                  </span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">Time Remaining:</span>
-                  <span className="stat-value time-remaining-value">
-                    {game.minutesRemaining} min
-                  </span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">AI Projected +Points:</span>
-                  <span className="stat-value projected-points-value">
-                    +{game.projectedPoints}
-                  </span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">Pace vs Average:</span>
-                  <span className={`stat-value pace-vs-average ${game.paceVsAverage > 0 ? 'text-green-300' : game.paceVsAverage < 0 ? 'text-red-300' : 'text-gray-400'}`}>
-                    {game.paceVsAverage > 0 ? '+' : ''}{game.paceVsAverage}
-                  </span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">O/U Edge:</span>
-                  <span className={`stat-value ${game.overUnderEdge === 'OVER LEAN' ? 'text-green-300' : game.overUnderEdge === 'UNDER LEAN' ? 'text-red-300' : 'text-gray-400'}`}>
-                    {game.overUnderEdge}
-                  </span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">Game Tempo:</span>
-                  <span className={`stat-value ${game.gameTempo === 'HOT 🔥' ? 'text-red-300' : game.gameTempo === 'COLD 🥶' ? 'text-blue-300' : 'text-gray-400'}`}>
-                    {game.gameTempo}
-                  </span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">Blowout Risk:</span>
-                  <span className={`stat-value blowout-value ${game.blowoutRisk > 70 ? 'text-red-300' : game.blowoutRisk > 40 ? 'text-yellow-300' : game.blowoutRisk > 15 ? 'text-orange-300' : 'text-green-300'} font-bold`}>
-                    {game.blowoutRisk}%
-                  </span>
-                </div>
-              </div>
+              )}
+            </section>
+          )}
+
+          {/* No games message */}
+          {liveGames.length === 0 && halftimeGames.length === 0 && upcomingGames.length === 0 && (
+            <div className="no-games-container">
+              <p className="no-games-message">No games currently</p>
+              <p className="no-games-subtitle">Check back during game time for live AI projections!</p>
             </div>
-          ))}
+          )}
+
+          {/* Summary stats */}
+          <div className="summary-stats">
+            <div className="stat-item">
+              <span className="stat-number">{liveGames.length}</span>
+              <span className="stat-label">Live</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-number">{halftimeGames.length}</span>
+              <span className="stat-label">Halftime</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-number">{upcomingGames.length}</span>
+              <span className="stat-label">Upcoming</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-number">{games.length}</span>
+              <span className="stat-label">Total</span>
+            </div>
+          </div>
         </div>
       )}
     </main>
