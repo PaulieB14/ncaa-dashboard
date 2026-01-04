@@ -168,8 +168,31 @@ export default function Home() {
       const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard');
       const data = await res.json();
 
+      // 🔧 DEBUG: Log API response to see what's available
+      console.log('🏀 ESPN API Response:', data);
+      console.log('📊 Total events found:', data.events?.length || 0);
+      
+      // 🔧 FIXED: More inclusive filtering - show all non-final games
+      const allGames = data.events || [];
+      console.log('🎯 All games:', allGames.map((event: any) => ({
+        id: event.id,
+        name: event.name,
+        status: event.status.type.name,
+        detail: event.competitions[0]?.status?.type?.detail,
+        state: event.status.type.state
+      })));
+
       const liveGames: Game[] = data.events
-        .filter((event: any) => event.status.type.name !== 'STATUS_FINAL' && event.competitions[0].status.type.detail.includes(' - '))
+        // 🔧 FIXED: Show all games that aren't final (includes scheduled, pre-game, in-progress)
+        .filter((event: any) => {
+          const isNotFinal = event.status.type.name !== 'STATUS_FINAL';
+          const isNotPostponed = event.status.type.name !== 'STATUS_POSTPONED';
+          const isNotCanceled = event.status.type.name !== 'STATUS_CANCELED';
+          
+          console.log(`🎮 Game ${event.name}: Status=${event.status.type.name}, Include=${isNotFinal && isNotPostponed && isNotCanceled}`);
+          
+          return isNotFinal && isNotPostponed && isNotCanceled;
+        })
         .map((event: any) => {
           const comp = event.competitions[0];
           const home = comp.competitors.find((c: any) => c.homeAway === 'home');
@@ -177,8 +200,15 @@ export default function Home() {
 
           const homeScore = parseInt(home?.score || '0');
           const awayScore = parseInt(away?.score || '0');
-          const period = comp.status.period;
-          const clockDisplay = comp.status.type.detail;
+          const period = comp.status.period || 1;
+          
+          // 🔧 FIXED: Handle different clock display formats
+          let clockDisplay = comp.status.type.detail || comp.status.type.shortDetail || 'Scheduled';
+          
+          // For pre-game, show the scheduled time
+          if (event.status.type.name === 'STATUS_SCHEDULED') {
+            clockDisplay = `Starts ${new Date(event.date).toLocaleTimeString()}`;
+          }
 
           // Use Smart AI projection (no TensorFlow issues)
           const projection = smartAIProjection(
@@ -235,10 +265,11 @@ export default function Home() {
           };
         });
 
+      console.log('✅ Final filtered games:', liveGames.length);
       setGames(liveGames);
       setLoading(false);
     } catch (err) {
-      console.error(err);
+      console.error('❌ Error fetching games:', err);
       setGames([]);
       setLoading(false);
     }
